@@ -1,0 +1,45 @@
+---
+title: SAR KICT
+description: 한국건설기술연구원 주요사업 "위성 SAR 기반 인프라 재해 대응 기술 개발" 과제 참여 연구자/개발자를 위한 페이지 입니다.
+template: splash
+hero:
+  tagline: 위성 SAR 기반 인프라 재해 대응 기술 개발
+  image:
+    file: ../../assets/kict_ci.png
+  actions:
+    - text: 과제내용
+      link: /01intro/01개요
+      icon: right-arrow
+    - text: Work-in-Progress Doc
+      link: https://www.notion.so/SAR-KICT-Share-Page-22c6023ebd648058b9f1c10ef02e94ad?source=copy_link
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Key Features
+<CardGrid stagger>
+	<Card title="원내 위성데이터 스토리지 (내부용)" icon="pencil">
+		원내 사용자를 위한 Sentinel-1 등 [위성 데이터 스토리지 접근 방법](https://www.notion.so/SAR-22c6023ebd64807cb36bef73fe14544e?source=copy_link)을 공유합니다.
+		(KICT 원내에서만 이용 가능)
+	</Card>
+	<Card title="Gamma SAR 설치 스크립트 (내부용)" icon="setting">
+		우분투(22.04)에서 사용한 [Gamma SAR 설치 스크립트](/gamma/gamma설치방법/)를 공유합니다.
+	</Card>
+	<Card title="Gamma Jupyter Server (내부용)" icon="setting">
+		[Gamma SAR 실행 가능한 Jupyter notebook 환경](http://3.39.255.250:8888/tree)을 제공합니다. (KICT 구성원 + 암호 필요) \n
+		[접속 방법](https://www.notion.so/Gamma-SAR-22d6023ebd648031be6dfa198b544be6?source=copy_link)을 참고하세요.
+	</Card>
+	<Card title="Gamma Server SSH 접근 (내부용)" icon="setting">
+		Gamma SAR 프로그램이 설치된 해석 서버에 SSH로 접근하는 방법을 공유합니다. (KICT 구성원 + 보안키 필요)
+	</Card>
+	<Card title="인천대교 주탑 변위 분석 결과" icon="add-document">
+		주요 해석 결과 공유
+	</Card>
+	<Card title="항만 지반 침하 분석 결과" icon="open-book">
+		주요 해석 결과 공유
+	</Card>
+</CardGrid>
+
+- 문의: bckim@kict.re.kr

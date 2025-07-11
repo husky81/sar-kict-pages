@@ -1,54 +1,67 @@
-# Starlight Starter Kit: Basics
+# 🇰🇷 한국건설기술연구원 (KICT) – 위성 SAR 기반 인프라 현황 모니터링
 
-[![Built with ~ Starl ight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+이 저장소는 [KICT](https://www.kict.re.kr)에서 공개한 **위성 SAR(Synthetic Aperture Radar)** 데이터를 활용한 **인프라 모니터링 기술** 관련 내용을 문서화한 것입니다.  
+최신 연구 결과를 투명하게 공유하며, **누구나 기여**할 수 있습니다.
 
-```
-npm create astro@latest -- --template starlight
-```
+---
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/starlight/tree/main/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/starlight/tree/main/examples/basics)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/withastro/starlight&create_from_path=examples/basics)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwithastro%2Fstarlight%2Ftree%2Fmain%2Fexamples%2Fbasics&project-name=my-starlight-docs&repository-name=my-starlight-docs)
+## 📚 문서 구성
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+| 항목 | 설명 |
+|------|------|
+| **기술 개요** | 위성 SAR을 활용한 도로·지하구조물 모니터링 |
+| **활용 사례** | 2024년 폐기물매립장 대상 현장 분석 결과 요약 |
+| **성과 및 기대효과** | 비용 절감, 맹점 제거, 실효성 입증(15dB 향상, 30% 비용 절감 등) :contentReference[oaicite:1]{index=1} |
+| **연구 주체** | KICT 연구팀 (황성필·김우석 박사) :contentReference[oaicite:2]{index=2} |
+| **재원** | 과기정통부 지원 연구 (2024–) :contentReference[oaicite:3]{index=3} |
 
-## 🚀 Project Structure
+---
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+## 🛠 기여 안내
 
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   ├── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
-```
+1. 이 저장소는 **공공 데이터 공유를 촉진**하고자 만들어졌습니다.  
+2. **누구나 이슈(issue)**를 열고, **수정 제안(pull request)**을 보낼 수 있습니다.  
+3. PR 제출 시, 아래 내용을 포함해 주세요:
+   - **변경 목적** 및 **관련 연구 근거**  
+   - **출처 정보**(예: 논문, 보도자료 등 URL 또는 PDF)
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+---
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+## 🧾 운영 원칙
 
-Static assets, like favicons, can be placed in the `public/` directory.
+- 📌 **투명성**: 모든 자료는 출처를 명시하며 공개합니다.  
+- 🤝 **협업 중심**: 공공기관·학계·산업계 등 다양한 분들의 의견 환영  
+- 🧭 **정확성**: 데이터와 기술 설명은 공식 문헌/보도자료 기준으로 유지합니다.
 
-## 🧞 Commands
+---
 
-All commands are run from the root of the project, from a terminal:
+## 📄 주요 참조 논문
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+- *Identification of Risk Zones…* (Sustainability, 12월 2024) :contentReference[oaicite:4]{index=4}  
+- *A Study on Monitoring Surface Displacement…* (KICT 연구사업, 2024) :contentReference[oaicite:5]{index=5}
 
-## 👀 Want to learn more?
+---
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+## 📌 FAQ
+
+**Q. 이 저장소는 어떤 목적을 위한 것인가요?**  
+A. 위성 SAR 기반 모니터링 기술을 **대중에게 공유**하고, **기여를 독려**하여 기술 발전에 기여하기 위함입니다.
+
+**Q. 누가 자료를 추가·수정할 수 있나요?**  
+A. 누구나! 이슈 제안 및 PR을 통해 **공식 문서 업그레이드**에 참여하실 수 있습니다.
+
+---
+
+### 📌 공공기관 안내
+
+> 본 저장소는 대한민국 공공기관의 공식 기술 공유를 목적으로 운영되며,  
+> **정부 재정 지원 연구의 공공성 확보**를 위해 개방되어 있습니다.  
+> 수정·제안된 내용은 **검토 후 공식 반영**하도록 하겠습니다.
+
+---
+
+**📬 문의 및 기여는 언제든지 환영합니다!**  
+이슈를 통해 제안서를 남겨 주세요.
+
+---
+

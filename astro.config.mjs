@@ -26,7 +26,7 @@ export default defineConfig({
 					autogenerate: { directory: 'gamma' },
 				},
 				{
-					label: 'Reference',
+					label: '참고',
 					autogenerate: { directory: 'reference' },
 				},
 			],

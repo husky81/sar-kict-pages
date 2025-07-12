@@ -3,15 +3,14 @@ title: 기여방법 안내
 description: sar-kict 페이지의 내용을 수정 제안하는 방법입니다.
 ---
 
-아래는 다른 사람들이 당신의 블로그 레포지토리(`husky81/sar-kict-pages`)에 글을 작성하고 기여할 수 있도록 돕는 **기여 가이드 안내문**입니다.
-`CONTRIBUTING.md` 파일로 저장해 레포지토리에 포함하거나, README.md에 포함해도 좋습니다.
+sar-kict-pages는 **Astro + Starlight** 기반으로 만든 웹페이지입니다.
+누구나 새로운 글이나 문서를 작성해 제안할 수 있습니다.
 
----
+## 이 홈페이지의 소스코드 다운받기
+### 준비사항
+gi
+Node.js
 
-# 🤝 기여 안내 (Contributing Guide)
-
-안녕하세요! 이 저장소는 **Astro + Starlight** 기반으로 만든 블로그입니다.
-누구나 새로운 글이나 문서를 작성해 제안할 수 있으며, Pull Request를 통해 기여해 주시면 감사합니다 🙏
 
 ---
 

@@ -6,7 +6,7 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'SAR KICT',
+			title: 'SAR KICT Pages',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/husky81/sar-kict-pages' }],
 			sidebar: [
 				//{

@@ -10,14 +10,23 @@
 
 ---
 
-## 🛠 기술 스택
+## 다운로드 및 실행 방법
+
+> git clone https://github.com/husky81/sar-kict-pages
+> cd sar-kict-pages
+> npm install
+> npm run dev
+
+---
+
+## 기술 스택
 
 - **[Astro](https://astro.build/)** – 정적 웹사이트 생성기
 - **[Starlight](https://starlight.astro.build/)** – Astro 기반의 문서화 프레임워크
 
 ---
 
-## 🚀 배포 방식
+## 배포 방식
 
 - **정적 빌드 후 배포**  
 - **Cloudflare Pages**를 통해 자동 배포  
@@ -25,9 +34,8 @@
 
 ---
 
-## 📬 기여 안내
+## 기여 안내
 
 이 저장소는 열린 협업을 지향합니다.  
 오타 수정, 설명 개선, 기능 제안 등 누구나 참여할 수 있으며,  
 PR(Pull Request) 또는 Issue로 제안해 주세요.
-

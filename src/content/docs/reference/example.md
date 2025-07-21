@@ -3,10 +3,8 @@ title: 기여방법 안내
 description: sar-kict 페이지의 내용을 수정 제안하는 방법입니다.
 ---
 
-sar-kict-pages는 **Astro + Starlight** 기반으로 만든 웹페이지입니다.
-누구나 새로운 글이나 문서를 작성해 제안할 수 있습니다.
-이 홈페이지(sar-kict.pages.dev)는 **Astro + Starlight** 기반으로 만든 웹페이지입니다.
-누구나 새로운 글이나 문서를 작성해 제안할 수 있습니다.
+sar-kict-pages는 Astro + Starlight 기반으로 작성했습니다.
+누구나 마크다운 형식으로 새로운 글이나 문서를 작성해 제안할 수 있습니다.
 
 # 소스코드 다운로드
 
@@ -20,6 +18,7 @@ npm run dev
 ```
 
 git과 Node.js가 설치되어있지 않으면 다운 받아서 설치
+(주의) 건설연 원내에서는 실시간 미리보기가 가능한 npm run dev가 실행되지 않지만, 수정 제안은 가능합니다.
 
 다음 내용을 수정한 후 
 

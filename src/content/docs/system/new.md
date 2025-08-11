@@ -10,7 +10,7 @@ SAR 플랫폼 화면 시안 A, B안을 첨부 파일로 공유 드립니다.
 시안 확정 시 세부 페이지 디자인이 진행될 예정입니다.
 
 - 시안 A
-![Logo](./assets/PC_main-A-modi.png "로고 이미지")
+![Logo](src\assets\a.png "로고 이미지")
 
 - 시안 B
 ![Logo](./assets/PC_main-B-수정.png "로고 이미지")

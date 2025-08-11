@@ -3,6 +3,9 @@ title: Gamma Ubuntu 설치 방법
 description: A reference page in my new Starlight docs site.
 ---
 
+최신 스크립트는 노션 문서 참조 
+<a href="https://www.notion.so/Gamma-SAR-22a6023ebd64805bb4f0d1281f1c923c" target="_blank" rel="noopener noreferrer">Gamma SAR 우분투 설치 스크립트</a>
+
 ## AWS 제원
 
 - EC2: t3.medium Ubuntu 8G

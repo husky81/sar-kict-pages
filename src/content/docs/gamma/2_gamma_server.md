@@ -1,5 +1,5 @@
 ---
-title: Gamma 설치환경
+title: Gamma Server
 description: Gamma가 설치된 Ubuntu 환경을 제공합니다.
 ---
 

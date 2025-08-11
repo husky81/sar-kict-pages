@@ -5,7 +5,8 @@ description: Gamma가 설치된 Ubuntu 환경을 제공합니다.
 
 # Gamma 위성 분석 소프트웨어 Ubuntu 환경 제공 안내
 
-Gamma 위성 분석 소프트웨어가 설치되어 실행 가능한 Ubuntu 환경을 **Jupyter Notebook**을 통해 원내 사용자에게 제공합니다. (서버 실행 환경 테스트용. <a href="http://3.39.255.250:8888/tree" target="_blank" rel="noopener noreferrer">Gamma Server</a>)
+Gamma 위성 분석 소프트웨어가 설치되어 실행 가능한 Ubuntu 환경을 **Jupyter Notebook**을 통해 원내 사용자에게 제공합니다. (서버 실행 환경 테스트용. )
+<a href="http://3.39.255.250:8888/tree" target="_blank" rel="noopener noreferrer">Gamma Server</a>
 
 ---
 

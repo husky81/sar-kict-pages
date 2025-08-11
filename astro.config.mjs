@@ -26,6 +26,10 @@ export default defineConfig({
 					autogenerate: { directory: 'gamma' },
 				},
 				{
+					label: '시스템',
+					autogenerate: { directory: 'system' },
+				},
+				{
 					label: '참고',
 					autogenerate: { directory: 'reference' },
 				},

@@ -11,6 +11,9 @@ Gamma 위성 분석 소프트웨어가 설치되어 실행 가능한 Ubuntu 환�
 
 ![기본 원리: 같은 지역의 위성 SAR 영상 두 장을 비교해 고도 변화 파악](http://3.39.255.250:8888/tree)
 [Gamma Server](http://3.39.255.250:8888/tree "Gamma Server로 이동")
+<a href="https://www.google.com" target="_blank" rel="noopener noreferrer">Google</a>
+
+
 
 ## 주요 내용
 

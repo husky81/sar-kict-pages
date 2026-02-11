@@ -1,0 +1,11 @@
+# 이 파일을 terraform.tfvars로 복사한 후 값을 채워주세요
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region   = "ap-northeast-2"
+instance_type = "t3.small"
+key_name      = "your-key-pair-name"   # AWS 콘솔에서 생성한 키페어 이름
+domain_name   = "your-domain.com"      # Cloudflare 도메인
+
+# SSH 접근 IP 제한 (본인 IP만 허용 권장)
+# https://checkip.amazonaws.com 에서 확인
+allowed_ssh_cidrs = ["xxx.xxx.xxx.xxx/32"]

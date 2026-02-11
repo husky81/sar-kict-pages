@@ -36,7 +36,7 @@ export default function Home() {
             alt=""
             width={700}
             height={400}
-            className="opacity-[0.05] dark:opacity-[0.07]"
+            className="opacity-[0.12] dark:opacity-[0.15]"
           />
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-left sm:pl-16">
@@ -121,11 +121,11 @@ export default function Home() {
               <ul className="mt-4 space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
                 <li className="flex justify-between">
                   <span>기간</span>
-                  <span className="font-medium text-foreground">2025.01 ~ 2025.12</span>
+                  <span className="font-medium text-foreground">2025.01 ~ 2029.12</span>
                 </li>
                 <li className="flex justify-between">
                   <span>책임자</span>
-                  <span className="font-medium text-foreground">이두한 연구원</span>
+                  <span className="font-medium text-foreground">이두한 선임연구위원</span>
                 </li>
                 <li className="flex justify-between">
                   <span>수행기관</span>

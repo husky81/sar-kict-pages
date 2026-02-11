@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(cmd.exe /c \"node --version && npm --version\")",
+      "Bash(cmd.exe /c \"where node && node --version && npm --version\")",
+      "Bash(powershell.exe -Command \"node --version; npm --version\")",
+      "Bash(powershell.exe -Command:*)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npx.cmd\" create-next-app@latest \"c:\\\\Users\\\\bckim\\\\BckSoft\\\\sar-kict-app\" --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx --yes kill-port:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

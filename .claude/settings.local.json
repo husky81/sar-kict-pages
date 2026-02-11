@@ -16,7 +16,19 @@
       "Bash(lsof:*)",
       "Bash(xargs:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:authjs.dev)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install next-auth@beta @auth/prisma-adapter @prisma/client bcryptjs zod)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma init:*)",
+      "Bash(node -e:*)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate dev:*)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma db push:*)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }

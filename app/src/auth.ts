@@ -1,16 +1,46 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import authConfig from "@/auth.config";
+import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
 import type { UserRole, UserStatus } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
-  ...authConfig,
+  providers: [
+    Google,
+    Credentials({
+      credentials: {
+        email: { label: "이메일", type: "email" },
+        password: { label: "비밀번호", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string;
+        const password = credentials?.password as string;
+
+        if (!email || !password) return null;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user || !user.password) return null;
+
+        const isValid = await compare(password, user.password);
+        if (!isValid) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
+      },
+    }),
+  ],
   callbacks: {
     async signIn({ user, account }) {
       // OAuth 신규 가입 시에는 항상 허용 (PrismaAdapter가 PENDING으로 생성)

@@ -14,9 +14,21 @@ export default auth((req) => {
   const isAdminPage = nextUrl.pathname.startsWith("/admin");
   const isDashboardPage = nextUrl.pathname.startsWith("/dashboard");
   const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
+  const isInstanceApi = nextUrl.pathname.startsWith("/api/instances");
 
   // API 인증 라우트는 항상 허용
   if (isApiAuth) return NextResponse.next();
+
+  // 인스턴스 API: 로그인 + 승인 필요
+  if (isInstanceApi) {
+    if (!isLoggedIn) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (userStatus !== "APPROVED") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
 
   // 로그인된 사용자가 로그인/가입 페이지 접근 시 리다이렉트
   if (isLoggedIn && isAuthPage) {

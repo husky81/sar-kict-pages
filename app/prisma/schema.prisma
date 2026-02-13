@@ -32,6 +32,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  instance Instance?
 }
 
 model Account {
@@ -68,4 +69,46 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum InstanceStatus {
+  PENDING
+  RUNNING
+  STOPPED
+  STOPPING
+  STARTING
+  TERMINATED
+  FAILED
+}
+
+model Instance {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  instanceId      String?        @unique
+  instanceType    String         @default("t3.small")
+  status          InstanceStatus @default(PENDING)
+  publicIp        String?
+  privateIp       String?
+  securityGroupId String?
+  keyPairName     String?
+  amiId           String?
+  alarmName       String?
+  launchedAt      DateTime?
+  stoppedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sshKey SshKey?
+}
+
+model SshKey {
+  id          String   @id @default(cuid())
+  instanceId  String   @unique
+  keyPairName String
+  privateKey  String   @db.Text
+  fingerprint String?
+  createdAt   DateTime @default(now())
+
+  instance Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 }

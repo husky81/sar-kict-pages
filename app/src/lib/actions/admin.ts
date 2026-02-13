@@ -37,6 +37,12 @@ export async function getUsers() {
       role: true,
       createdAt: true,
       image: true,
+      instance: {
+        select: {
+          instanceId: true,
+          status: true,
+        },
+      },
     },
   });
 }

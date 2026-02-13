@@ -1,10 +1,27 @@
 import { auth } from "@/auth";
 import SignOutButton from "@/components/auth/sign-out-button";
+import InstanceCard from "@/components/instance/instance-card";
+import { getUserInstance } from "@/lib/actions/ec2";
 
 export const metadata = { title: "대시보드 - SAR KICT" };
 
 export default async function DashboardPage() {
   const session = await auth();
+  const instance = await getUserInstance();
+
+  const initialInstance = instance
+    ? {
+        id: instance.id,
+        instanceId: instance.instanceId || "",
+        status: instance.status,
+        publicIp: instance.publicIp,
+        privateIp: instance.privateIp,
+        instanceType: instance.instanceType,
+        keyPairName: instance.keyPairName,
+        launchedAt: instance.launchedAt?.toISOString() || null,
+        stoppedAt: instance.stoppedAt?.toISOString() || null,
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,13 +54,15 @@ export default async function DashboardPage() {
           SAR KICT Cloud Platform에 오신 것을 환영합니다.
         </p>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <h3 className="font-semibold text-gray-900">내 정보</h3>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-gray-500">이름</dt>
-                <dd className="text-gray-900">{session?.user?.name || "-"}</dd>
+                <dd className="text-gray-900">
+                  {session?.user?.name || "-"}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">이메일</dt>
@@ -57,6 +76,8 @@ export default async function DashboardPage() {
               </div>
             </dl>
           </div>
+
+          <InstanceCard initialInstance={initialInstance} />
         </div>
       </main>
     </div>

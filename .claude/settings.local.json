@@ -61,7 +61,18 @@
       "Bash(pm2 status:*)",
       "Bash(sudo openssl x509:*)",
       "Bash(PGPASSWORD='ha25h4dsfqj!$%#' psql:*)",
-      "Bash(sudo apt-get install -y postgresql-client)"
+      "Bash(sudo apt-get install -y postgresql-client)",
+      "Bash(git push:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(ssh:*)",
+      "Bash(sudo systemctl status:*)",
+      "Bash(sudo cat:*)",
+      "Bash(sudo ls:*)",
+      "Bash(pm2 flush:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm view:*)",
+      "Bash(python3 -m json.tool:*)"
     ]
   }
 }

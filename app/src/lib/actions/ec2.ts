@@ -8,7 +8,6 @@ import {
   RunInstancesCommand,
   StartInstancesCommand,
   StopInstancesCommand,
-  TerminateInstancesCommand,
   CreateKeyPairCommand,
   DeleteKeyPairCommand,
   CreateSecurityGroupCommand,
@@ -132,26 +131,10 @@ export async function provisionInstance() {
     const awsInstanceId = runResult.Instances![0].InstanceId!;
     const privateIp = runResult.Instances![0].PrivateIpAddress;
 
-    // 5. CloudWatch 자동 중지 알람 생성
+    // 5. DB 저장 (CloudWatch보다 먼저 — 알람 실패해도 인스턴스 추적 가능)
     const region = process.env.AWS_REGION || "ap-northeast-2";
     const alarmName = `${userTag}-auto-stop`;
-    await cloudwatch.send(
-      new PutMetricAlarmCommand({
-        AlarmName: alarmName,
-        AlarmDescription: `Auto-stop for user ${session.user.email} when CPU < 5% for 30min`,
-        Namespace: "AWS/EC2",
-        MetricName: "CPUUtilization",
-        Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
-        Statistic: "Average",
-        Period: 300,
-        EvaluationPeriods: 6,
-        Threshold: 5.0,
-        ComparisonOperator: "LessThanThreshold",
-        AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
-      })
-    );
 
-    // 6. DB 저장
     const instance = await prisma.instance.create({
       data: {
         userId,
@@ -174,6 +157,31 @@ export async function provisionInstance() {
         fingerprint: keyResult.KeyFingerprint,
       },
     });
+
+    // 6. CloudWatch 자동 중지 알람 생성 (비치명적 — 실패해도 인스턴스는 사용 가능)
+    try {
+      await cloudwatch.send(
+        new PutMetricAlarmCommand({
+          AlarmName: alarmName,
+          AlarmDescription: `Auto-stop for user ${session.user.email} when CPU < 5% for 30min`,
+          Namespace: "AWS/EC2",
+          MetricName: "CPUUtilization",
+          Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
+          Statistic: "Average",
+          Period: 300,
+          EvaluationPeriods: 6,
+          Threshold: 5.0,
+          ComparisonOperator: "LessThanThreshold",
+          AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
+        })
+      );
+    } catch (alarmError) {
+      console.warn("CloudWatch alarm creation failed (non-critical):", alarmError);
+      await prisma.instance.update({
+        where: { id: instance.id },
+        data: { alarmName: null },
+      });
+    }
 
     revalidatePath("/dashboard");
     return { success: true, instanceId: instance.id };
@@ -235,20 +243,36 @@ export async function terminateInstance(targetUserId: string) {
   });
   if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
 
-  await ec2.send(
-    new TerminateInstancesCommand({ InstanceIds: [instance.instanceId] })
-  );
+  // EC2 인스턴스 중지 (TerminateInstances는 IAM Deny — AWS Console에서 수동 삭제)
+  if (instance.status !== "STOPPED" && instance.status !== "TERMINATED") {
+    try {
+      await ec2.send(
+        new StopInstancesCommand({ InstanceIds: [instance.instanceId] })
+      );
+    } catch (e) {
+      console.warn("Instance stop failed:", e);
+    }
+  }
 
+  // 부속 리소스 정리
   if (instance.alarmName) {
-    await cloudwatch.send(
-      new DeleteAlarmsCommand({ AlarmNames: [instance.alarmName] })
-    );
+    try {
+      await cloudwatch.send(
+        new DeleteAlarmsCommand({ AlarmNames: [instance.alarmName] })
+      );
+    } catch (e) {
+      console.warn(`Alarm ${instance.alarmName} 삭제 실패:`, e);
+    }
   }
 
   if (instance.keyPairName) {
-    await ec2.send(
-      new DeleteKeyPairCommand({ KeyName: instance.keyPairName })
-    );
+    try {
+      await ec2.send(
+        new DeleteKeyPairCommand({ KeyName: instance.keyPairName })
+      );
+    } catch (e) {
+      console.warn(`KeyPair ${instance.keyPairName} 삭제 실패:`, e);
+    }
   }
 
   if (instance.securityGroupId) {
@@ -263,6 +287,7 @@ export async function terminateInstance(targetUserId: string) {
     }
   }
 
+  // DB에서 삭제 (EC2 인스턴스 자체는 AWS Console에서 수동 종료 필요)
   await prisma.instance.delete({ where: { id: instance.id } });
 
   revalidatePath("/admin/users");

@@ -66,7 +66,7 @@ export async function login(
     await signIn("credentials", {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
-      redirect: false,
+      redirectTo: "/dashboard",
     });
     return { success: true };
   } catch (error) {
@@ -74,12 +74,12 @@ export async function login(
       if (error.type === "CredentialsSignin") {
         return { error: "이메일 또는 비밀번호가 올바르지 않습니다" };
       }
-      // signIn 콜백에서 /pending으로 리다이렉트한 경우
       if (error.type === "CallbackRouteError") {
         return { error: "승인 대기 중이거나 접근이 거부되었습니다" };
       }
+      return { error: "로그인 중 오류가 발생했습니다" };
     }
-    return { error: "로그인 중 오류가 발생했습니다" };
+    throw error; // NEXT_REDIRECT 등 비-AuthError는 re-throw
   }
 }
 

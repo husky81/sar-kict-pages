@@ -46,16 +46,50 @@ export async function GET() {
     const mappedStatus = statusMap[awsState || ""] || instance.status;
 
     if (mappedStatus !== instance.status || publicIp !== instance.publicIp) {
+      const now = new Date();
+
+      // RunningLog: RUNNING 전환 시 열린 로그가 없으면 새로 생성
+      if (mappedStatus === "RUNNING" && instance.status !== "RUNNING") {
+        const openLog = await prisma.runningLog.findFirst({
+          where: { instanceId: instance.id, stoppedAt: null },
+        });
+        if (!openLog) {
+          await prisma.runningLog.create({
+            data: { instanceId: instance.id, startedAt: now },
+          });
+        }
+      }
+
+      // RunningLog: STOPPED/TERMINATED 전환 시 열린 로그 닫기
+      if (
+        (mappedStatus === "STOPPED" || mappedStatus === "TERMINATED") &&
+        instance.status === "RUNNING"
+      ) {
+        const openLog = await prisma.runningLog.findFirst({
+          where: { instanceId: instance.id, stoppedAt: null },
+          orderBy: { startedAt: "desc" },
+        });
+        if (openLog) {
+          const durationMin = Math.round(
+            (now.getTime() - openLog.startedAt.getTime()) / 60000
+          );
+          await prisma.runningLog.update({
+            where: { id: openLog.id },
+            data: { stoppedAt: now, durationMin },
+          });
+        }
+      }
+
       await prisma.instance.update({
         where: { id: instance.id },
         data: {
           status: mappedStatus,
           publicIp,
           ...(mappedStatus === "RUNNING" && !instance.launchedAt
-            ? { launchedAt: new Date() }
+            ? { launchedAt: now }
             : {}),
           ...(mappedStatus === "STOPPED"
-            ? { stoppedAt: new Date() }
+            ? { stoppedAt: now }
             : {}),
         },
       });

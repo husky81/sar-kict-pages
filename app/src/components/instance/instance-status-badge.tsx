@@ -11,9 +11,9 @@ const styles: Record<string, string> = {
 const labels: Record<string, string> = {
   RUNNING: "실행 중",
   STOPPED: "중지됨",
-  PENDING: "생성 중",
-  STARTING: "시작 중",
-  STOPPING: "중지 중",
+  PENDING: "준비 중",
+  STARTING: "켜는 중",
+  STOPPING: "끄는 중",
   TERMINATED: "종료됨",
   FAILED: "실패",
 };

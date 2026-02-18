@@ -16,11 +16,24 @@ export default auth((req) => {
   const isPendingPage = nextUrl.pathname.startsWith("/pending");
   const isAdminPage = nextUrl.pathname.startsWith("/admin");
   const isDashboardPage = nextUrl.pathname.startsWith("/dashboard");
+  const isSettingsPage = nextUrl.pathname.startsWith("/settings");
   const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
   const isInstanceApi = nextUrl.pathname.startsWith("/api/instances");
+  const isMyIpApi = nextUrl.pathname.startsWith("/api/my-ip");
 
   // API 인증 라우트는 항상 허용
   if (isApiAuth) return NextResponse.next();
+
+  // IP 감지 API: 로그인 + 승인 필요
+  if (isMyIpApi) {
+    if (!isLoggedIn) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (userStatus !== "APPROVED") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
 
   // 인스턴스 API: 로그인 + 승인 필요
   if (isInstanceApi) {
@@ -54,8 +67,8 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // 보호된 페이지 (dashboard, admin): 로그인 + 승인 필요
-  if (isDashboardPage || isAdminPage) {
+  // 보호된 페이지 (dashboard, settings, admin): 로그인 + 승인 필요
+  if (isDashboardPage || isSettingsPage || isAdminPage) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", nextUrl));
     }

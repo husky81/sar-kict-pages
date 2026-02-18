@@ -64,7 +64,7 @@ export default function StartStopButton({
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             />
           </svg>
-          처리 중...
+          {canStart ? "켜는 중..." : "끄는 중..."}
         </span>
       ) : canStart ? (
         "시작"

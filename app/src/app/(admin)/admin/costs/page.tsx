@@ -15,37 +15,65 @@ function formatDuration(totalMinutes: number) {
 export default async function AdminCostsPage() {
   const data = await getAllUsersCost();
 
+  // 현재 월 정보 (KST 기준)
+  const now = new Date();
+  const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const currentMonth = kstNow.getMonth() + 1;
+  const currentYear = kstNow.getFullYear();
+  const monthStart = new Date(kstNow.getFullYear(), kstNow.getMonth(), 1);
+  const monthEnd = new Date(kstNow.getFullYear(), kstNow.getMonth() + 1, 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader activePage="costs" />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">비용 관리</h1>
-        <p className="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base">
-          이번 달 프로젝트 전체 EC2 비용을 확인할 수 있습니다.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">비용 관리</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              이번 달 프로젝트 전체 EC2 비용을 확인할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 bg-white border border-gray-200 px-3 py-2 rounded-lg">
+            <span>📅</span>
+            <span className="font-medium">
+              {currentYear}년 {currentMonth}월 ({monthStart.getDate()}일 ~ {monthEnd.getDate()}일)
+            </span>
+            <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">KST</span>
+          </div>
+        </div>
 
         {/* Summary cards */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-            <p className="text-xs text-gray-500 sm:text-sm">이번 달 총비용</p>
-            <p className="text-lg font-bold text-gray-900 sm:text-2xl">
+          <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 shadow-sm">
+            <p className="text-xs text-blue-600 sm:text-sm font-medium">이번 달 총비용</p>
+            <p className="text-lg font-bold text-blue-900 sm:text-2xl">
               ${data.projectTotal.total.toFixed(2)}
             </p>
+            <p className="text-[10px] text-blue-600 mt-1">
+              {data.users.length > 0 && `평균 $${(data.projectTotal.total / data.users.length).toFixed(2)}/인`}
+            </p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <p className="text-xs text-gray-500 sm:text-sm">EC2 비용</p>
             <p className="text-lg font-bold text-gray-700 sm:text-2xl">
               ${data.projectTotal.ec2.toFixed(2)}
             </p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              {data.projectTotal.total > 0 && `${((data.projectTotal.ec2 / data.projectTotal.total) * 100).toFixed(0)}% 비중`}
+            </p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <p className="text-xs text-gray-500 sm:text-sm">EBS 비용</p>
             <p className="text-lg font-bold text-gray-700 sm:text-2xl">
               ${data.projectTotal.ebs.toFixed(2)}
             </p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              {data.projectTotal.total > 0 && `${((data.projectTotal.ebs / data.projectTotal.total) * 100).toFixed(0)}% 비중`}
+            </p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <p className="text-xs text-gray-500 sm:text-sm">인스턴스</p>
             <p className="text-lg font-bold text-gray-900 sm:text-2xl">
               <span className="text-green-600">{data.activeCount}</span>
@@ -53,6 +81,9 @@ export default async function AdminCostsPage() {
                 {" "}
                 / {data.totalCount}
               </span>
+            </p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              {data.totalCount > 0 && `${((data.activeCount / data.totalCount) * 100).toFixed(0)}% 가동 중`}
             </p>
           </div>
         </div>

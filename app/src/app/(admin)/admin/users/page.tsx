@@ -32,6 +32,25 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function RoleBadge({ role }: { role: string }) {
+  const styles: Record<string, string> = {
+    ADMIN: "bg-purple-100 text-purple-800 border-purple-200",
+    MEMBER: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+  const labels: Record<string, string> = {
+    ADMIN: "👑 관리자",
+    MEMBER: "👤 일반",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 rounded-md border px-2 py-0.5 text-xs font-medium ${styles[role]}`}
+    >
+      {labels[role]}
+    </span>
+  );
+}
+
 function UserAvatar({ image, name }: { image: string | null; name: string | null }) {
   if (image) {
     return <img src={image} alt="" className="h-8 w-8 rounded-full" />;
@@ -76,9 +95,12 @@ export default async function AdminUsersPage() {
                   <div className="flex items-center gap-3">
                     <UserAvatar image={user.image} name={user.name} />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {user.name || "-"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {user.name || "-"}
+                        </p>
+                        <RoleBadge role={user.role} />
+                      </div>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
@@ -277,6 +299,9 @@ export default async function AdminUsersPage() {
                   이메일
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  역할
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   상태
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -314,6 +339,9 @@ export default async function AdminUsersPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                       {user.email}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <RoleBadge role={user.role} />
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <StatusBadge status={user.status} />
@@ -485,7 +513,7 @@ export default async function AdminUsersPage() {
               {users.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-10 text-center text-sm text-gray-500"
                   >
                     등록된 사용자가 없습니다.

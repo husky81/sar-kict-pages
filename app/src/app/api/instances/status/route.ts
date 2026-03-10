@@ -55,7 +55,7 @@ export async function GET() {
         });
         if (!openLog) {
           await prisma.runningLog.create({
-            data: { instanceId: instance.id, startedAt: now },
+            data: { instanceId: instance.id, userId: instance.userId, startedAt: now },
           });
         }
       }

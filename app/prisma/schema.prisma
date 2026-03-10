@@ -30,9 +30,11 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  instance Instance?
+  accounts          Account[]
+  sessions          Session[]
+  instance          Instance?
+  runningLogs       RunningLog[]
+  instanceLifecycle InstanceLifecycle[]
 }
 
 model Account {
@@ -105,14 +107,17 @@ model Instance {
 
 model RunningLog {
   id          String    @id @default(cuid())
+  userId      String
   instanceId  String
   startedAt   DateTime
   stoppedAt   DateTime?
   durationMin Int?
   createdAt   DateTime  @default(now())
 
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   instance Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@index([instanceId])
   @@index([startedAt])
 }
@@ -127,3 +132,24 @@ model SshKey {
 
   instance Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 }
+
+// 인스턴스 생명주기 추적 (생성/삭제 이력)
+model InstanceLifecycle {
+  id             String    @id @default(cuid())
+  userId         String
+  instanceType   String
+  awsInstanceId  String?
+  volumeSize     Int
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+  deletionReason String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// TODO: 아래 모델들은 DB 마이그레이션 후 활성화
+// InstanceTemplate, CostLimit, AutoStopPolicy
+// 마이그레이션 가이드: /app/MIGRATION_GUIDE.md 참조

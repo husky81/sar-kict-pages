@@ -29,6 +29,25 @@ export default function DashboardHeader({
           <span className="text-sm text-gray-600">
             {userName || userEmail}
           </span>
+          <a
+            href="/instances"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            인스턴스
+          </a>
+          <a
+            href="/settings"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            설정
+          </a>
+          <a
+            href="/help"
+            className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-medium"
+            title="사용 안내"
+          >
+            📘 도움말
+          </a>
           {hasPassword && (
             <a
               href="/settings/password"
@@ -38,12 +57,20 @@ export default function DashboardHeader({
             </a>
           )}
           {isAdmin && (
-            <a
-              href="/admin/users"
-              className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
-            >
-              관리자
-            </a>
+            <>
+              <a
+                href="/admin/users"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                사용자 관리
+              </a>
+              <a
+                href="/admin/templates"
+                className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
+              >
+                템플릿 관리
+              </a>
+            </>
           )}
           <SignOutButton />
         </div>
@@ -90,6 +117,24 @@ export default function DashboardHeader({
             </div>
 
             <nav className="flex flex-col p-4">
+              <a
+                href="/instances"
+                className="rounded-md px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                인스턴스
+              </a>
+              <a
+                href="/settings"
+                className="rounded-md px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                설정
+              </a>
+              <a
+                href="/help"
+                className="rounded-md px-3 py-3 text-sm text-blue-600 hover:bg-blue-50 font-medium"
+              >
+                📘 도움말
+              </a>
               {hasPassword && (
                 <a
                   href="/settings/password"
@@ -99,12 +144,23 @@ export default function DashboardHeader({
                 </a>
               )}
               {isAdmin && (
-                <a
-                  href="/admin/users"
-                  className="rounded-md px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                >
-                  관리자 페이지
-                </a>
+                <>
+                  <div className="mt-2 border-t border-gray-200 pt-2">
+                    <p className="px-3 py-2 text-xs font-semibold text-gray-500">관리자</p>
+                  </div>
+                  <a
+                    href="/admin/users"
+                    className="rounded-md px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  >
+                    사용자 관리
+                  </a>
+                  <a
+                    href="/admin/templates"
+                    className="rounded-md px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  >
+                    템플릿 관리
+                  </a>
+                </>
               )}
               <div className="mt-4 border-t border-gray-200 pt-4 px-3">
                 <SignOutButton />

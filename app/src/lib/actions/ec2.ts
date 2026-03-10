@@ -220,6 +220,16 @@ export async function provisionInstance(targetUserId: string) {
       },
     });
 
+    // InstanceLifecycle 기록 (비용 추적용)
+    await prisma.instanceLifecycle.create({
+      data: {
+        userId,
+        instanceType: user.instanceType,
+        awsInstanceId,
+        volumeSize: preset.volumeSize,
+      },
+    });
+
     // 6. CloudWatch 자동 중지 알람 생성 (비치명적 — 실패해도 인스턴스는 사용 가능)
     try {
       await cloudwatch.send(
@@ -284,6 +294,7 @@ export async function startInstance() {
   if (!existingLog) {
     await prisma.runningLog.create({
       data: {
+        userId: session.user.id,
         instanceId: instance.id,
         startedAt: new Date(),
       },
@@ -428,6 +439,7 @@ export async function adminStartInstance(targetUserId: string) {
   if (!existingLog) {
     await prisma.runningLog.create({
       data: {
+        userId: targetUserId,
         instanceId: instance.id,
         startedAt: new Date(),
       },
@@ -607,4 +619,559 @@ export async function getUserInstanceConfig() {
     quota: Number(rows[0]?.instanceQuota ?? 0),
     instanceType: rows[0]?.instanceType ?? "t3.small",
   };
+}
+
+/**
+ * 사용자가 직접 인스턴스를 생성
+ * - 쿼터 확인 후 자동 생성
+ * - 관리자 개입 불필요
+ */
+export async function createMyInstance() {
+  const session = await requireApprovedUser();
+  const userId = session.user.id;
+
+  // 쿼터 및 설정 확인
+  const userRows = await prisma.$queryRawUnsafe<
+    { instanceQuota: number; instanceType: string; email: string }[]
+  >(
+    `SELECT COALESCE(c."instanceQuota", 0) as "instanceQuota",
+            COALESCE(c."instanceType", 't3.small') as "instanceType",
+            u.email
+     FROM "User" u
+     LEFT JOIN "UserInstanceConfig" c ON c."userId" = u.id
+     WHERE u.id = $1`,
+    userId
+  ).catch(() => [] as { instanceQuota: number; instanceType: string; email: string }[]);
+
+  const user = userRows[0];
+  if (!user || Number(user.instanceQuota) < 1) {
+    throw new Error("인스턴스 생성 권한이 없습니다. 관리자에게 문의하세요.");
+  }
+
+  // 이미 인스턴스가 있는지 확인
+  const existing = await prisma.instance.findUnique({ where: { userId } });
+  if (existing) {
+    throw new Error("이미 인스턴스가 있습니다. 기존 인스턴스를 삭제 후 다시 생성하세요.");
+  }
+
+  const preset = getPreset(user.instanceType);
+  const projectName = "sar-kict";
+  const userTag = `${projectName}-user-${userId.slice(0, 8)}`;
+
+  try {
+    // 1. Security Group 생성 (이미 존재하면 재사용)
+    const sgName = `${userTag}-sg`;
+    let sgId: string;
+
+    try {
+      const sgResult = await ec2.send(
+        new CreateSecurityGroupCommand({
+          GroupName: sgName,
+          Description: `Security group for user ${user.email}`,
+          VpcId: process.env.AWS_VPC_ID,
+        })
+      );
+      sgId = sgResult.GroupId!;
+
+      // 사용자의 등록된 SSH 허용 IP로 규칙 추가
+      const allowedIps = await prisma.$queryRawUnsafe<{ ipAddress: string }[]>(
+        `SELECT "ipAddress" FROM "SshAllowedIp" WHERE "userId" = $1`,
+        userId
+      ).catch(() => [] as { ipAddress: string }[]);
+
+      if (allowedIps.length > 0) {
+        const ipRanges: IpRange[] = allowedIps.map((row) => ({
+          CidrIp: `${row.ipAddress}/32`,
+          Description: `SSH allow ${row.ipAddress}`,
+        }));
+
+        await ec2.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupId: sgId,
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 22,
+                ToPort: 22,
+                IpRanges: ipRanges,
+              },
+            ],
+          })
+        );
+      }
+    } catch (sgError: unknown) {
+      if (
+        sgError instanceof Error &&
+        "Code" in sgError &&
+        (sgError as { Code: string }).Code === "InvalidGroup.Duplicate"
+      ) {
+        const existing = await ec2.send(
+          new DescribeSecurityGroupsCommand({
+            Filters: [
+              { Name: "group-name", Values: [sgName] },
+              { Name: "vpc-id", Values: [process.env.AWS_VPC_ID!] },
+            ],
+          })
+        );
+        sgId = existing.SecurityGroups![0].GroupId!;
+      } else {
+        throw sgError;
+      }
+    }
+
+    // 2. Key Pair 생성 (이미 존재하면 삭제 후 재생성)
+    const keyPairName = `${userTag}-key`;
+    try {
+      await ec2.send(new DeleteKeyPairCommand({ KeyName: keyPairName }));
+    } catch {
+      // 없으면 무시
+    }
+    const keyResult = await ec2.send(
+      new CreateKeyPairCommand({
+        KeyName: keyPairName,
+        KeyType: "rsa",
+        KeyFormat: "pem",
+      })
+    );
+
+    // 3. AMI
+    const amiId = "ami-0dad7a2e04d3b66b4";
+
+    // 4. EC2 인스턴스 실행
+    const runResult = await ec2.send(
+      new RunInstancesCommand({
+        ImageId: amiId,
+        InstanceType: user.instanceType as _InstanceType,
+        KeyName: keyPairName,
+        SecurityGroupIds: [sgId],
+        SubnetId: process.env.AWS_SUBNET_ID,
+        MinCount: 1,
+        MaxCount: 1,
+        TagSpecifications: [
+          {
+            ResourceType: "instance",
+            Tags: [
+              {
+                Key: "Name",
+                Value: `${projectName}-user-${user.email}`,
+              },
+              { Key: "Project", Value: projectName },
+              { Key: "UserId", Value: userId },
+              { Key: "ManagedBy", Value: "sar-kict-app" },
+            ],
+          },
+          {
+            ResourceType: "volume",
+            Tags: [
+              {
+                Key: "Name",
+                Value: `${projectName}-vol-${user.email}`,
+              },
+              { Key: "Project", Value: projectName },
+              { Key: "UserId", Value: userId },
+              { Key: "ManagedBy", Value: "sar-kict-app" },
+            ],
+          },
+        ],
+        BlockDeviceMappings: [
+          {
+            DeviceName: "/dev/sda1",
+            Ebs: { VolumeSize: preset.volumeSize, VolumeType: "gp3", Encrypted: true },
+          },
+        ],
+      })
+    );
+
+    const awsInstanceId = runResult.Instances![0].InstanceId!;
+    const privateIp = runResult.Instances![0].PrivateIpAddress;
+
+    // 5. DB 저장
+    const region = process.env.AWS_REGION || "ap-northeast-2";
+    const alarmName = `${userTag}-auto-stop`;
+
+    const instance = await prisma.instance.create({
+      data: {
+        userId,
+        instanceId: awsInstanceId,
+        instanceType: user.instanceType,
+        status: "PENDING",
+        privateIp,
+        securityGroupId: sgId,
+        keyPairName,
+        amiId: amiId,
+        alarmName,
+      },
+    });
+
+    await prisma.sshKey.create({
+      data: {
+        instanceId: instance.id,
+        keyPairName,
+        privateKey: keyResult.KeyMaterial!,
+        fingerprint: keyResult.KeyFingerprint,
+      },
+    });
+
+    // InstanceLifecycle 기록 (비용 추적용)
+    await prisma.instanceLifecycle.create({
+      data: {
+        userId,
+        instanceType: user.instanceType,
+        awsInstanceId,
+        volumeSize: preset.volumeSize,
+      },
+    });
+
+    // 6. CloudWatch 자동 중지 알람 생성
+    try {
+      await cloudwatch.send(
+        new PutMetricAlarmCommand({
+          AlarmName: alarmName,
+          AlarmDescription: `Auto-stop for user ${user.email} when CPU < 5% for 30min`,
+          Namespace: "AWS/EC2",
+          MetricName: "CPUUtilization",
+          Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
+          Statistic: "Average",
+          Period: 300,
+          EvaluationPeriods: 6,
+          Threshold: 5.0,
+          ComparisonOperator: "LessThanThreshold",
+          AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
+        })
+      );
+    } catch (alarmError) {
+      console.warn("CloudWatch alarm creation failed (non-critical):", alarmError);
+      await prisma.instance.update({
+        where: { id: instance.id },
+        data: { alarmName: null },
+      });
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true, instanceId: instance.id };
+  } catch (error) {
+    console.error("Instance creation failed:", error);
+    throw new Error("인스턴스 생성에 실패했습니다. 관리자에게 문의하세요.");
+  }
+}
+
+/**
+ * 사용자가 직접 인스턴스를 삭제
+ * - 본인의 인스턴스만 삭제 가능
+ * - EC2 terminate + DB 삭제
+ */
+export async function deleteMyInstance() {
+  const session = await requireApprovedUser();
+
+  const instance = await prisma.instance.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  if (!instance) {
+    throw new Error("삭제할 인스턴스가 없습니다.");
+  }
+
+  try {
+    // 1. CloudWatch 알람 삭제
+    if (instance.alarmName) {
+      try {
+        await cloudwatch.send(
+          new DeleteAlarmsCommand({ AlarmNames: [instance.alarmName] })
+        );
+      } catch (alarmError) {
+        console.warn("Alarm deletion failed (non-critical):", alarmError);
+      }
+    }
+
+    // 2. EC2 인스턴스 종료 (terminate)
+    if (instance.instanceId) {
+      try {
+        const { TerminateInstancesCommand } = await import("@aws-sdk/client-ec2");
+        await ec2.send(
+          new TerminateInstancesCommand({ InstanceIds: [instance.instanceId] })
+        );
+      } catch (ec2Error) {
+        console.warn("EC2 termination failed (may already be terminated):", ec2Error);
+      }
+    }
+
+    // 3. Security Group 삭제
+    if (instance.securityGroupId) {
+      try {
+        await ec2.send(
+          new DeleteSecurityGroupCommand({ GroupId: instance.securityGroupId })
+        );
+      } catch (sgError) {
+        console.warn("Security group deletion failed (may be in use):", sgError);
+      }
+    }
+
+    // 4. Key Pair 삭제
+    if (instance.keyPairName) {
+      try {
+        await ec2.send(
+          new DeleteKeyPairCommand({ KeyName: instance.keyPairName })
+        );
+      } catch (keyError) {
+        console.warn("Key pair deletion failed:", keyError);
+      }
+    }
+
+    // 5. SSH 허용 IP 삭제
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "SshAllowedIp" WHERE "userId" = $1`,
+      session.user.id
+    ).catch(() => {});
+
+    // 6. InstanceLifecycle 업데이트 (삭제 시간 기록)
+    if (instance.instanceId) {
+      await prisma.instanceLifecycle.updateMany({
+        where: {
+          userId: session.user.id,
+          awsInstanceId: instance.instanceId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+          deletionReason: "User requested deletion",
+        },
+      });
+    }
+
+    // 7. DB에서 삭제
+    await prisma.instance.delete({ where: { id: instance.id } });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Instance deletion failed:", error);
+    throw new Error("인스턴스 삭제에 실패했습니다. 관리자에게 문의하세요.");
+  }
+}
+
+/**
+ * 사용자의 모든 인스턴스 조회 (다중 인스턴스 지원)
+ * TODO: DB 마이그레이션 후 template 관계 및 name, lastActivityAt 필드 활성화
+ */
+export async function getUserInstances() {
+  const session = await requireApprovedUser();
+
+  const instance = await prisma.instance.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  if (!instance) return [];
+
+  return [{
+    id: instance.id,
+    name: `Instance-${instance.id.slice(0, 8)}`,
+    instanceId: instance.instanceId || "",
+    status: instance.status,
+    publicIp: instance.publicIp,
+    privateIp: instance.privateIp,
+    instanceType: instance.instanceType,
+    keyPairName: instance.keyPairName,
+    templateName: undefined as string | undefined,
+    launchedAt: instance.launchedAt?.toISOString() || null,
+    stoppedAt: instance.stoppedAt?.toISOString() || null,
+    createdAt: instance.createdAt.toISOString(),
+  }];
+}
+
+/**
+ * 템플릿 기반 인스턴스 생성 (다중 인스턴스 지원)
+ * TODO: DB 마이그레이션 후 활성화
+ */
+export async function createInstanceFromTemplate(
+  _templateId: string,
+  _instanceName?: string
+) {
+  throw new Error("DB 마이그레이션이 필요합니다. 관리자에게 문의하세요.");
+}
+
+/**
+ * 특정 인스턴스 시작
+ */
+export async function startInstanceById(instanceId: string) {
+  const session = await requireApprovedUser();
+
+  const instance = await prisma.instance.findFirst({
+    where: {
+      id: instanceId,
+      userId: session.user.id,
+    },
+  });
+
+  if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
+
+  await ec2.send(
+    new StartInstancesCommand({ InstanceIds: [instance.instanceId] })
+  );
+
+  await prisma.instance.update({
+    where: { id: instance.id },
+    data: {
+      status: "STARTING",
+    },
+  });
+
+  const existingLog = await prisma.runningLog.findFirst({
+    where: {
+      instanceId: instance.id,
+      stoppedAt: null,
+    },
+  });
+
+  if (!existingLog) {
+    await prisma.runningLog.create({
+      data: {
+        userId: session.user.id,
+        instanceId: instance.id,
+        startedAt: new Date(),
+      },
+    });
+  }
+
+  revalidatePath("/dashboard");
+}
+
+/**
+ * 특정 인스턴스 중지
+ */
+export async function stopInstanceById(instanceId: string) {
+  const session = await requireApprovedUser();
+
+  const instance = await prisma.instance.findFirst({
+    where: {
+      id: instanceId,
+      userId: session.user.id,
+    },
+  });
+
+  if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
+
+  await ec2.send(
+    new StopInstancesCommand({ InstanceIds: [instance.instanceId] })
+  );
+
+  await prisma.instance.update({
+    where: { id: instance.id },
+    data: { status: "STOPPING" },
+  });
+
+  const lastRunningLog = await prisma.runningLog.findFirst({
+    where: {
+      instanceId: instance.id,
+      stoppedAt: null,
+    },
+    orderBy: { startedAt: "desc" },
+  });
+
+  if (lastRunningLog) {
+    await prisma.runningLog.update({
+      where: { id: lastRunningLog.id },
+      data: { stoppedAt: new Date() },
+    });
+  }
+
+  revalidatePath("/dashboard");
+}
+
+/**
+ * 특정 인스턴스 삭제
+ */
+export async function deleteInstanceById(instanceId: string) {
+  const session = await requireApprovedUser();
+
+  const instance = await prisma.instance.findFirst({
+    where: {
+      id: instanceId,
+      userId: session.user.id,
+    },
+  });
+
+  if (!instance) {
+    throw new Error("삭제할 인스턴스가 없습니다.");
+  }
+
+  try {
+    // CloudWatch 알람 삭제
+    if (instance.alarmName) {
+      try {
+        await cloudwatch.send(
+          new DeleteAlarmsCommand({ AlarmNames: [instance.alarmName] })
+        );
+      } catch (alarmError) {
+        console.warn("Alarm deletion failed:", alarmError);
+      }
+    }
+
+    // EC2 종료
+    if (instance.instanceId) {
+      try {
+        const { TerminateInstancesCommand } = await import("@aws-sdk/client-ec2");
+        await ec2.send(
+          new TerminateInstancesCommand({ InstanceIds: [instance.instanceId] })
+        );
+      } catch (ec2Error) {
+        console.warn("EC2 termination failed:", ec2Error);
+      }
+    }
+
+    // Security Group 삭제 (다른 인스턴스가 사용 중일 수 있으므로 조건부)
+    if (instance.securityGroupId) {
+      const otherInstances = await prisma.instance.count({
+        where: {
+          userId: session.user.id,
+          securityGroupId: instance.securityGroupId,
+          id: { not: instance.id },
+        },
+      });
+
+      if (otherInstances === 0) {
+        try {
+          await ec2.send(
+            new DeleteSecurityGroupCommand({ GroupId: instance.securityGroupId })
+          );
+        } catch (sgError) {
+          console.warn("Security group deletion failed:", sgError);
+        }
+      }
+    }
+
+    // Key Pair 삭제
+    if (instance.keyPairName) {
+      try {
+        await ec2.send(
+          new DeleteKeyPairCommand({ KeyName: instance.keyPairName })
+        );
+      } catch (keyError) {
+        console.warn("Key pair deletion failed:", keyError);
+      }
+    }
+
+    // InstanceLifecycle 업데이트
+    if (instance.instanceId) {
+      await prisma.instanceLifecycle.updateMany({
+        where: {
+          userId: session.user.id,
+          awsInstanceId: instance.instanceId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+          deletionReason: "User requested deletion",
+        },
+      });
+    }
+
+    // DB에서 삭제
+    await prisma.instance.delete({ where: { id: instance.id } });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Instance deletion failed:", error);
+    throw new Error("인스턴스 삭제에 실패했습니다.");
+  }
 }

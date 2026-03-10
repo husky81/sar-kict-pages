@@ -48,6 +48,44 @@ export default async function DashboardPage() {
           SAR KICT Cloud Platform에 오신 것을 환영합니다.
         </p>
 
+        {/* 비용 요약 카드 */}
+        {costData && initialInstance && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="hidden sm:block text-3xl">💰</div>
+                <div>
+                  <p className="text-xs text-blue-600 font-medium">이번 달 예상 비용</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-900">
+                    ${costData.totalCost.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-6 sm:gap-8">
+                <div>
+                  <p className="text-xs text-blue-600">가동 시간</p>
+                  <p className="text-lg sm:text-xl font-semibold text-blue-900">
+                    {Math.floor(costData.totalMinutes / 60)}h {costData.totalMinutes % 60}m
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-600">인스턴스 상태</p>
+                  <p className="text-lg sm:text-xl font-semibold text-blue-900">
+                    {costData.isRunning ? (
+                      <span className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        실행 중
+                      </span>
+                    ) : (
+                      <span className="text-gray-600">중지됨</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
             <h3 className="font-semibold text-gray-900">내 정보</h3>

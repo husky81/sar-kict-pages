@@ -55,9 +55,23 @@ export default function CostCard({ cost }: { cost: CostData | null }) {
   const recentDays = cost.daily.slice(-7);
   const maxMinutes = Math.max(...recentDays.map((d) => d.minutes), 1);
 
+  // 오늘 날짜 (KST 기준)
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+
+  // 현재 월 정보
+  const now = new Date();
+  const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const currentMonth = kstNow.getMonth() + 1;
+  const currentYear = kstNow.getFullYear();
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="font-semibold text-gray-900">이번 달 비용</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900">이번 달 비용</h3>
+        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          📅 {currentYear}년 {currentMonth}월
+        </span>
+      </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {/* 총 비용 */}
@@ -102,33 +116,56 @@ export default function CostCard({ cost }: { cost: CostData | null }) {
       {/* 일별 가동 시간 바 차트 */}
       {recentDays.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs font-medium text-gray-500 mb-2">
-            최근 일별 가동 시간
-          </p>
-          <div className="space-y-1">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-gray-500">
+              최근 일별 가동 시간
+            </p>
+            <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
+              🕐 KST 기준
+            </span>
+          </div>
+          <div className="space-y-1.5">
             {recentDays.map((day) => {
               const widthPercent = (day.minutes / maxMinutes) * 100;
+              const isToday = day.date === today;
+              const hasUsage = day.minutes > 0;
+
               return (
                 <div
                   key={day.date}
-                  className="flex items-center gap-2 text-xs"
+                  className="group flex items-center gap-2 text-xs hover:bg-gray-50 rounded px-1 -mx-1 py-0.5 transition-colors cursor-default"
+                  title={`${day.date} (KST): ${hasUsage ? formatDuration(day.minutes) : '사용 안 함'}`}
                 >
-                  <span className="w-12 text-gray-500 shrink-0">
+                  <span className={`w-14 shrink-0 ${isToday ? 'text-blue-600 font-semibold' : hasUsage ? 'text-gray-600' : 'text-gray-400'}`}>
                     {day.date.slice(5)}
+                    {isToday && <span className="ml-1 text-[10px]">●</span>}
                   </span>
-                  <div className="flex-1 h-4 bg-gray-100 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded"
-                      style={{ width: `${widthPercent}%` }}
-                    />
+                  <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden relative">
+                    {hasUsage ? (
+                      <div
+                        className={`h-full rounded transition-all ${
+                          isToday
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 group-hover:from-blue-600 group-hover:to-blue-700'
+                            : 'bg-blue-500 group-hover:bg-blue-600'
+                        }`}
+                        style={{ width: `${widthPercent}%` }}
+                      />
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <span className="text-[10px] text-gray-400">-</span>
+                      </div>
+                    )}
                   </div>
-                  <span className="w-16 text-right text-gray-700">
-                    {formatDuration(day.minutes)}
+                  <span className={`w-20 text-right tabular-nums ${hasUsage ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                    {hasUsage ? formatDuration(day.minutes) : '-'}
                   </span>
                 </div>
               );
             })}
           </div>
+          <p className="mt-2 text-[10px] text-gray-400 text-right">
+            ● 오늘 · 호버하여 상세 정보 확인
+          </p>
         </div>
       )}
     </div>

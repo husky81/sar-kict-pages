@@ -19,13 +19,13 @@ export default function AdminHeader({
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <a href="/dashboard" className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity">
           <img src="/kict_ci.png" alt="KICT" className="h-7 w-auto sm:h-8" />
           <span className="text-base font-bold text-gray-900 sm:text-lg">SAR KICT</span>
           <span className="rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
             관리자
           </span>
-        </div>
+        </a>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-4">

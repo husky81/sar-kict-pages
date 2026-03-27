@@ -89,7 +89,7 @@ export async function addSshIp(ip: string) {
   }
 
   // Get user's instance SG
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId },
     select: { securityGroupId: true },
   });
@@ -184,7 +184,7 @@ export async function removeSshIp(ipId: string) {
   const cidr = `${ipAddress}/32`;
 
   // Get user's instance SG
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId },
     select: { securityGroupId: true },
   });

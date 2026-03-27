@@ -40,11 +40,12 @@ export async function getUsers() {
       role: true,
       createdAt: true,
       image: true,
-      instance: {
+      instances: {
         select: {
           instanceId: true,
           status: true,
         },
+        take: 1,
       },
     },
   });
@@ -52,13 +53,13 @@ export async function getUsers() {
   // 과도기 상태(PENDING, STARTING, STOPPING)인 인스턴스의 실제 EC2 상태 동기화
   const transitionalInstances = users.filter(
     (u) =>
-      u.instance &&
-      ["PENDING", "STARTING", "STOPPING"].includes(u.instance.status)
+      u.instances[0] &&
+      ["PENDING", "STARTING", "STOPPING"].includes(u.instances[0].status)
   );
 
   if (transitionalInstances.length > 0) {
     const instanceIds = transitionalInstances
-      .map((u) => u.instance!.instanceId)
+      .map((u) => u.instances[0]?.instanceId)
       .filter(Boolean) as string[];
 
     if (instanceIds.length > 0) {
@@ -90,18 +91,19 @@ export async function getUsers() {
 
         // DB 업데이트 및 로컬 상태 반영
         for (const u of transitionalInstances) {
-          const awsData = awsStatusMap.get(u.instance!.instanceId!);
-          if (awsData && awsData.status !== u.instance!.status) {
+          const inst = u.instances[0];
+          if (!inst) continue;
+          const awsData = awsStatusMap.get(inst.instanceId!);
+          if (awsData && awsData.status !== inst.status) {
             await prisma.instance.updateMany({
-              where: { instanceId: u.instance!.instanceId! },
+              where: { instanceId: inst.instanceId! },
               data: {
                 status: awsData.status,
                 publicIp: awsData.publicIp,
                 ...(awsData.status === "STOPPED" ? { stoppedAt: new Date() } : {}),
               },
             });
-            // 로컬 객체도 업데이트
-            u.instance!.status = awsData.status;
+            inst.status = awsData.status;
           }
         }
       } catch (e) {
@@ -123,6 +125,7 @@ export async function getUsers() {
 
   return users.map((u) => ({
     ...u,
+    instance: u.instances[0] || null,
     instanceQuota: Number(quotaMap.get(u.id)?.instanceQuota ?? 0),
     instanceType: quotaMap.get(u.id)?.instanceType ?? "t3.small",
   }));
@@ -147,7 +150,7 @@ export async function updateUserInstanceConfig(
     where: { id: userId },
     select: {
       id: true,
-      instance: { select: { status: true } },
+      instances: { select: { status: true }, take: 1 },
     },
   });
 
@@ -161,9 +164,10 @@ export async function updateUserInstanceConfig(
   ).catch(() => [{ instanceType: "t3.small" }]);
   const currentType = currentRows[0]?.instanceType ?? "t3.small";
 
+  const firstInstance = user.instances[0];
   if (
-    user.instance &&
-    user.instance.status !== "TERMINATED" &&
+    firstInstance &&
+    firstInstance.status !== "TERMINATED" &&
     currentType !== instanceType
   ) {
     throw new Error("활성 인스턴스가 있으면 타입을 변경할 수 없습니다");

@@ -56,7 +56,7 @@ export async function provisionInstance(targetUserId: string) {
     throw new Error("인스턴스 생성 권한이 없습니다. 쿼터를 먼저 설정하세요.");
   }
 
-  const existing = await prisma.instance.findUnique({ where: { userId } });
+  const existing = await prisma.instance.findFirst({ where: { userId } });
   if (existing) {
     throw new Error("이미 인스턴스가 있습니다");
   }
@@ -231,6 +231,12 @@ export async function provisionInstance(targetUserId: string) {
     });
 
     // 6. CloudWatch 자동 중지 알람 생성 (비치명적 — 실패해도 인스턴스는 사용 가능)
+    const AutoStopPolicy = await prisma.autoStopPolicy.findUnique({ where: { userId } });
+    const CpuThreshold = AutoStopPolicy?.cpuThreshold ?? 5.0;
+    const IdleMinutes = AutoStopPolicy?.idleMinutes ?? 30;
+    const EvalPeriods = Math.max(1, Math.round(IdleMinutes / 5));
+    const AlarmEnabled = AutoStopPolicy ? AutoStopPolicy.isActive && AutoStopPolicy.checkCpu : true;
+
     try {
       await cloudwatch.send(
         new PutMetricAlarmCommand({
@@ -241,9 +247,10 @@ export async function provisionInstance(targetUserId: string) {
           Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
           Statistic: "Average",
           Period: 300,
-          EvaluationPeriods: 6,
-          Threshold: 5.0,
+          EvaluationPeriods: EvalPeriods,
+          Threshold: CpuThreshold,
           ComparisonOperator: "LessThanThreshold",
+          ActionsEnabled: AlarmEnabled,
           AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
         })
       );
@@ -267,7 +274,7 @@ export async function provisionInstance(targetUserId: string) {
 export async function startInstance() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
   });
   if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
@@ -307,7 +314,7 @@ export async function startInstance() {
 export async function stopInstance() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
   });
   if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
@@ -349,7 +356,7 @@ export async function adminStopInstance(targetUserId: string) {
     throw new Error("관리자 권한이 필요합니다");
   }
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: targetUserId },
   });
   if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
@@ -396,7 +403,7 @@ export async function adminStartInstance(targetUserId: string) {
     throw new Error("관리자 권한이 필요합니다");
   }
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: targetUserId },
   });
   if (!instance?.instanceId) throw new Error("인스턴스를 찾을 수 없습니다");
@@ -457,7 +464,7 @@ export async function reclaimInstance(targetUserId: string) {
     throw new Error("관리자 권한이 필요합니다");
   }
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: targetUserId },
     include: { sshKey: true },
   });
@@ -560,7 +567,7 @@ async function syncInstanceState(instanceId: string, awsInstanceId: string) {
 export async function getUserInstance() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
     select: {
       id: true,
@@ -587,7 +594,7 @@ export async function getUserInstance() {
 export async function getSshKey() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
     include: { sshKey: true },
   });
@@ -649,7 +656,7 @@ export async function createMyInstance() {
   }
 
   // 이미 인스턴스가 있는지 확인
-  const existing = await prisma.instance.findUnique({ where: { userId } });
+  const existing = await prisma.instance.findFirst({ where: { userId } });
   if (existing) {
     throw new Error("이미 인스턴스가 있습니다. 기존 인스턴스를 삭제 후 다시 생성하세요.");
   }
@@ -823,6 +830,12 @@ export async function createMyInstance() {
     });
 
     // 6. CloudWatch 자동 중지 알람 생성
+    const AutoStopPolicy = await prisma.autoStopPolicy.findUnique({ where: { userId } });
+    const CpuThreshold = AutoStopPolicy?.cpuThreshold ?? 5.0;
+    const IdleMinutes = AutoStopPolicy?.idleMinutes ?? 30;
+    const EvalPeriods = Math.max(1, Math.round(IdleMinutes / 5));
+    const AlarmEnabled = AutoStopPolicy ? AutoStopPolicy.isActive && AutoStopPolicy.checkCpu : true;
+
     try {
       await cloudwatch.send(
         new PutMetricAlarmCommand({
@@ -833,9 +846,10 @@ export async function createMyInstance() {
           Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
           Statistic: "Average",
           Period: 300,
-          EvaluationPeriods: 6,
-          Threshold: 5.0,
+          EvaluationPeriods: EvalPeriods,
+          Threshold: CpuThreshold,
           ComparisonOperator: "LessThanThreshold",
+          ActionsEnabled: AlarmEnabled,
           AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
         })
       );
@@ -863,7 +877,7 @@ export async function createMyInstance() {
 export async function deleteMyInstance() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
   });
 
@@ -949,44 +963,226 @@ export async function deleteMyInstance() {
   }
 }
 
-/**
- * 사용자의 모든 인스턴스 조회 (다중 인스턴스 지원)
- * TODO: DB 마이그레이션 후 template 관계 및 name, lastActivityAt 필드 활성화
- */
 export async function getUserInstances() {
   const session = await requireApprovedUser();
 
-  const instance = await prisma.instance.findUnique({
+  const instances = await prisma.instance.findMany({
     where: { userId: session.user.id },
+    include: { template: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
   });
 
-  if (!instance) return [];
+  for (const inst of instances) {
+    if (inst.instanceId) {
+      syncInstanceState(inst.id, inst.instanceId).catch(() => {});
+    }
+  }
 
-  return [{
-    id: instance.id,
-    name: `Instance-${instance.id.slice(0, 8)}`,
-    instanceId: instance.instanceId || "",
-    status: instance.status,
-    publicIp: instance.publicIp,
-    privateIp: instance.privateIp,
-    instanceType: instance.instanceType,
-    keyPairName: instance.keyPairName,
-    templateName: undefined as string | undefined,
-    launchedAt: instance.launchedAt?.toISOString() || null,
-    stoppedAt: instance.stoppedAt?.toISOString() || null,
-    createdAt: instance.createdAt.toISOString(),
-  }];
+  return instances.map((inst) => ({
+    id: inst.id,
+    name: inst.name || `Instance-${inst.id.slice(0, 8)}`,
+    instanceId: inst.instanceId || "",
+    status: inst.status,
+    publicIp: inst.publicIp,
+    privateIp: inst.privateIp,
+    instanceType: inst.instanceType,
+    keyPairName: inst.keyPairName,
+    templateName: inst.template?.name || null,
+    launchedAt: inst.launchedAt?.toISOString() || null,
+    stoppedAt: inst.stoppedAt?.toISOString() || null,
+    createdAt: inst.createdAt.toISOString(),
+  }));
 }
 
-/**
- * 템플릿 기반 인스턴스 생성 (다중 인스턴스 지원)
- * TODO: DB 마이그레이션 후 활성화
- */
+
 export async function createInstanceFromTemplate(
-  _templateId: string,
-  _instanceName?: string
+  templateId: string,
+  instanceName?: string
 ) {
-  throw new Error("DB 마이그레이션이 필요합니다. 관리자에게 문의하세요.");
+  const session = await requireApprovedUser();
+  const userId = session.user.id;
+
+  const template = await prisma.instanceTemplate.findUnique({
+    where: { id: templateId, isActive: true },
+  });
+  if (!template) throw new Error("\uc720\ud6a8\ud558\uc9c0 \uc54a\uc740 \ud15c\ud50c\ub9bf\uc785\ub2c8\ub2e4.");
+
+  const existingCount = await prisma.instance.count({
+    where: { userId, templateId },
+  });
+  if (existingCount >= template.maxInstances) {
+    throw new Error(`\uc774 \ud15c\ud50c\ub9bf\uc73c\ub85c \ucd5c\ub300 ${template.maxInstances}\uac1c\uae4c\uc9c0 \uc0dd\uc131 \uac00\ub2a5\ud569\ub2c8\ub2e4.`);
+  }
+
+  const preset = getPreset(template.instanceType);
+  const projectName = "sar-kict";
+  const userTag = `${projectName}-user-${userId.slice(0, 8)}-${Date.now().toString(36)}`;
+
+  try {
+    const sgName = `${userTag}-sg`;
+    let sgId: string;
+    try {
+      const sgResult = await ec2.send(
+        new CreateSecurityGroupCommand({
+          GroupName: sgName,
+          Description: `Security group for template instance`,
+          VpcId: process.env.AWS_VPC_ID,
+        })
+      );
+      sgId = sgResult.GroupId!;
+
+      const allowedIps = await prisma.$queryRawUnsafe<{ ipAddress: string }[]>(
+        `SELECT "ipAddress" FROM "SshAllowedIp" WHERE "userId" = $1`,
+        userId
+      ).catch(() => [] as { ipAddress: string }[]);
+
+      if (allowedIps.length > 0) {
+        const ipRanges: IpRange[] = allowedIps.map((row) => ({
+          CidrIp: `${row.ipAddress}/32`,
+          Description: `SSH allow ${row.ipAddress}`,
+        }));
+        await ec2.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupId: sgId,
+            IpPermissions: [{ IpProtocol: "tcp", FromPort: 22, ToPort: 22, IpRanges: ipRanges }],
+          })
+        );
+      }
+    } catch (sgError: unknown) {
+      if (sgError instanceof Error && "Code" in sgError && (sgError as { Code: string }).Code === "InvalidGroup.Duplicate") {
+        const existing = await ec2.send(
+          new DescribeSecurityGroupsCommand({
+            Filters: [
+              { Name: "group-name", Values: [sgName] },
+              { Name: "vpc-id", Values: [process.env.AWS_VPC_ID!] },
+            ],
+          })
+        );
+        sgId = existing.SecurityGroups![0].GroupId!;
+      } else {
+        throw sgError;
+      }
+    }
+
+    const keyPairName = `${userTag}-key`;
+    try { await ec2.send(new DeleteKeyPairCommand({ KeyName: keyPairName })); } catch {}
+    const keyResult = await ec2.send(
+      new CreateKeyPairCommand({ KeyName: keyPairName, KeyType: "rsa", KeyFormat: "pem" })
+    );
+
+    const amiId = "ami-0dad7a2e04d3b66b4";
+    const displayName = instanceName || `${template.name}-${Date.now().toString(36)}`;
+
+    const runResult = await ec2.send(
+      new RunInstancesCommand({
+        ImageId: amiId,
+        InstanceType: template.instanceType as _InstanceType,
+        KeyName: keyPairName,
+        SecurityGroupIds: [sgId],
+        SubnetId: process.env.AWS_SUBNET_ID,
+        MinCount: 1,
+        MaxCount: 1,
+        TagSpecifications: [
+          {
+            ResourceType: "instance",
+            Tags: [
+              { Key: "Name", Value: `${projectName}-${displayName}` },
+              { Key: "Project", Value: projectName },
+              { Key: "UserId", Value: userId },
+              { Key: "TemplateId", Value: templateId },
+              { Key: "ManagedBy", Value: "sar-kict-app" },
+            ],
+          },
+          {
+            ResourceType: "volume",
+            Tags: [
+              { Key: "Name", Value: `${projectName}-vol-${displayName}` },
+              { Key: "Project", Value: projectName },
+              { Key: "UserId", Value: userId },
+              { Key: "ManagedBy", Value: "sar-kict-app" },
+            ],
+          },
+        ],
+        BlockDeviceMappings: [
+          { DeviceName: "/dev/sda1", Ebs: { VolumeSize: template.volumeSize, VolumeType: "gp3", Encrypted: true } },
+        ],
+      })
+    );
+
+    const awsInstanceId = runResult.Instances![0].InstanceId!;
+    const privateIp = runResult.Instances![0].PrivateIpAddress;
+    const region = process.env.AWS_REGION || "ap-northeast-2";
+    const alarmName = `${userTag}-auto-stop`;
+
+    const instance = await prisma.instance.create({
+      data: {
+        userId,
+        name: displayName,
+        instanceId: awsInstanceId,
+        instanceType: template.instanceType,
+        templateId,
+        status: "PENDING",
+        privateIp,
+        securityGroupId: sgId,
+        keyPairName,
+        amiId,
+        alarmName,
+      },
+    });
+
+    await prisma.sshKey.create({
+      data: {
+        instanceId: instance.id,
+        keyPairName,
+        privateKey: keyResult.KeyMaterial!,
+        fingerprint: keyResult.KeyFingerprint,
+      },
+    });
+
+    await prisma.instanceLifecycle.create({
+      data: {
+        userId,
+        instanceType: template.instanceType,
+        awsInstanceId,
+        volumeSize: template.volumeSize,
+      },
+    });
+
+    const tplAutoStopPolicy = await prisma.autoStopPolicy.findUnique({ where: { userId } });
+    const tplCpuThreshold = tplAutoStopPolicy?.cpuThreshold ?? 5.0;
+    const tplIdleMinutes = tplAutoStopPolicy?.idleMinutes ?? 30;
+    const tplEvalPeriods = Math.max(1, Math.round(tplIdleMinutes / 5));
+    const tplAlarmEnabled = tplAutoStopPolicy ? tplAutoStopPolicy.isActive && tplAutoStopPolicy.checkCpu : true;
+
+    try {
+      await cloudwatch.send(
+        new PutMetricAlarmCommand({
+          AlarmName: alarmName,
+          AlarmDescription: `Auto-stop for template instance`,
+          Namespace: "AWS/EC2",
+          MetricName: "CPUUtilization",
+          Dimensions: [{ Name: "InstanceId", Value: awsInstanceId }],
+          Statistic: "Average",
+          Period: 300,
+          EvaluationPeriods: tplEvalPeriods,
+          Threshold: tplCpuThreshold,
+          ComparisonOperator: "LessThanThreshold",
+          ActionsEnabled: tplAlarmEnabled,
+          AlarmActions: [`arn:aws:automate:${region}:ec2:stop`],
+        })
+      );
+    } catch (alarmError) {
+      console.warn("CloudWatch alarm creation failed:", alarmError);
+      await prisma.instance.update({ where: { id: instance.id }, data: { alarmName: null } });
+    }
+
+    revalidatePath("/instances");
+    revalidatePath("/dashboard");
+    return { success: true, instanceId: instance.id };
+  } catch (error) {
+    console.error("Template instance creation failed:", error);
+    throw new Error("\uc778\uc2a4\ud134\uc2a4 \uc0dd\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.");
+  }
 }
 
 /**

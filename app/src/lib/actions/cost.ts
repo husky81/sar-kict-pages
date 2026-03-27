@@ -121,7 +121,7 @@ export async function getMyInstanceCost() {
   });
 
   // 현재 인스턴스 정보 (있으면)
-  const instance = await prisma.instance.findUnique({
+  const instance = await prisma.instance.findFirst({
     where: { userId: session.user.id },
     select: {
       instanceType: true,
